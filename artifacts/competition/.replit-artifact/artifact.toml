@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/competition/"
+title = "Competition Results"
+version = "1.0.0"
+id = "artifacts/competition"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/competition/" ]
+localPort = 23894
+
+[services.development]
+run = "pnpm --filter @workspace/competition run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/competition", "run", "build" ]
+publicDir = "artifacts/competition/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23894"
+BASE_PATH = "/competition/"

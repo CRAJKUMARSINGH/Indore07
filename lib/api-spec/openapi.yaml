@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: evaluation
+    description: Competition evaluation operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /evaluation/entries:
+    get:
+      operationId: listEntries
+      tags: [evaluation]
+      summary: List all competition entries
+      description: Returns all 6 competition entries with scores and ranking
+      responses:
+        "200":
+          description: List of entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entry"
+
+  /evaluation/entries/{id}:
+    get:
+      operationId: getEntry
+      tags: [evaluation]
+      summary: Get a single competition entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entry detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryDetail"
+        "404":
+          description: Not found
+
+  /evaluation/summary:
+    get:
+      operationId: getEvaluationSummary
+      tags: [evaluation]
+      summary: Get evaluation summary stats
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +87,107 @@ components:
       required:
         - status
 
+    JudgeScore:
+      type: object
+      properties:
+        judge:
+          type: string
+        score:
+          type: number
+        verdict:
+          type: string
+      required: [judge, score, verdict]
+
+    Shortcoming:
+      type: object
+      properties:
+        category:
+          type: string
+        issue:
+          type: string
+        severity:
+          type: string
+      required: [category, issue, severity]
+
+    Entry:
+      type: object
+      properties:
+        id:
+          type: string
+        rank:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        overallScore:
+          type: number
+        beautyScore:
+          type: number
+        hiringVerdict:
+          type: string
+        hiringTier:
+          type: string
+        description:
+          type: string
+        medal:
+          type: ["string", "null"]
+      required: [id, rank, name, type, overallScore, beautyScore, hiringVerdict, hiringTier, description]
+
+    EntryDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        rank:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        overallScore:
+          type: number
+        beautyScore:
+          type: number
+        hiringVerdict:
+          type: string
+        hiringTier:
+          type: string
+        description:
+          type: string
+        medal:
+          type: ["string", "null"]
+        judgeScores:
+          type: array
+          items:
+            $ref: "#/components/schemas/JudgeScore"
+        strengths:
+          type: array
+          items:
+            type: string
+        shortcomings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shortcoming"
+      required: [id, rank, name, type, overallScore, beautyScore, hiringVerdict, hiringTier, description, judgeScores, strengths, shortcomings]
+
+    EvaluationSummary:
+      type: object
+      properties:
+        totalEntries:
+          type: integer
+        evaluationDate:
+          type: string
+        judges:
+          type: array
+          items:
+            type: string
+        topScorer:
+          type: string
+        averageScore:
+          type: number
+        universalShortcomings:
+          type: array
+          items:
+            type: string
+      required: [totalEntries, evaluationDate, judges, topScorer, averageScore, universalShortcomings]
