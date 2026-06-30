@@ -1,24 +1,25 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Wuolingo — merged best-of-all Indian language learning platform
 servers:
   - url: /api
-    description: Base API path
 tags:
   - name: health
-    description: Health operations
-  - name: evaluation
-    description: Competition evaluation operations
+  - name: languages
+  - name: users
+  - name: lessons
+  - name: exercises
+  - name: leaderboard
+  - name: stats
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -27,167 +28,384 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /evaluation/entries:
+  /languages:
     get:
-      operationId: listEntries
-      tags: [evaluation]
-      summary: List all competition entries
-      description: Returns all 6 competition entries with scores and ranking
+      operationId: listLanguages
+      tags: [languages]
+      summary: List all supported Indian languages
       responses:
         "200":
-          description: List of entries
+          description: Language list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Entry"
+                  $ref: "#/components/schemas/Language"
 
-  /evaluation/entries/{id}:
+  /users/me:
     get:
-      operationId: getEntry
-      tags: [evaluation]
-      summary: Get a single competition entry
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update user profile or active language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /lessons:
+    get:
+      operationId: listLessons
+      tags: [lessons]
+      summary: List lessons for a language
       parameters:
-        - name: id
-          in: path
+        - name: languageId
+          in: query
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Entry detail
+          description: Lessons list
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EntryDetail"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+
+  /lessons/{id}:
+    get:
+      operationId: getLesson
+      tags: [lessons]
+      summary: Get a lesson with its exercises
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lesson detail with exercises
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDetail"
         "404":
           description: Not found
 
-  /evaluation/summary:
-    get:
-      operationId: getEvaluationSummary
-      tags: [evaluation]
-      summary: Get evaluation summary stats
+  /lessons/{id}/complete:
+    post:
+      operationId: completeLesson
+      tags: [lessons]
+      summary: Mark a lesson as complete and award XP
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonCompleteInput"
       responses:
         "200":
-          description: Summary
+          description: Completion result with XP awarded
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EvaluationSummary"
+                $ref: "#/components/schemas/LessonCompleteResult"
+
+  /exercises/{id}/answer:
+    post:
+      operationId: checkAnswer
+      tags: [exercises]
+      summary: Submit an answer for an exercise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnswerInput"
+      responses:
+        "200":
+          description: Answer result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerResult"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get XP leaderboard with podium
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Leaderboard"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get user stats and progress summary
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
 
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
-    JudgeScore:
+    Language:
+      type: object
+      required: [id, name, nativeName, code, flag]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nativeName:
+          type: string
+        code:
+          type: string
+        flag:
+          type: string
+        learnerCount:
+          type: integer
+
+    User:
+      type: object
+      required: [id, name, xp, streak, level, currentLanguageId]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        xp:
+          type: integer
+        streak:
+          type: integer
+        level:
+          type: integer
+        currentLanguageId:
+          type: string
+        weeklyXp:
+          type: integer
+        longestStreak:
+          type: integer
+        lessonsCompleted:
+          type: integer
+
+    UserUpdate:
       type: object
       properties:
-        judge:
+        name:
           type: string
+        currentLanguageId:
+          type: string
+        goals:
+          type: array
+          items:
+            type: string
+
+    Lesson:
+      type: object
+      required: [id, title, unit, unitTitle, xpReward, status, exerciseCount]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        unit:
+          type: integer
+        unitTitle:
+          type: string
+        xpReward:
+          type: integer
+        status:
+          type: string
+        exerciseCount:
+          type: integer
+        languageId:
+          type: string
+
+    Exercise:
+      type: object
+      required: [id, lessonId, type, prompt, options, correctAnswer]
+      properties:
+        id:
+          type: integer
+        lessonId:
+          type: integer
+        type:
+          type: string
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        correctAnswer:
+          type: string
+        audioHint:
+          type: ["string", "null"]
+        transliteration:
+          type: ["string", "null"]
+
+    LessonDetail:
+      type: object
+      required: [id, title, unit, unitTitle, xpReward, status, exercises]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        unit:
+          type: integer
+        unitTitle:
+          type: string
+        xpReward:
+          type: integer
+        status:
+          type: string
+        exercises:
+          type: array
+          items:
+            $ref: "#/components/schemas/Exercise"
+
+    LessonCompleteInput:
+      type: object
+      required: [score]
+      properties:
         score:
-          type: number
-        verdict:
-          type: string
-      required: [judge, score, verdict]
+          type: integer
+        timeSpentSeconds:
+          type: integer
 
-    Shortcoming:
+    LessonCompleteResult:
       type: object
+      required: [xpAwarded, newTotal, streakUpdated, newStreak]
       properties:
-        category:
-          type: string
-        issue:
-          type: string
-        severity:
-          type: string
-      required: [category, issue, severity]
+        xpAwarded:
+          type: integer
+        newTotal:
+          type: integer
+        streakUpdated:
+          type: boolean
+        newStreak:
+          type: integer
+        levelUp:
+          type: boolean
 
-    Entry:
+    AnswerInput:
       type: object
+      required: [answer]
       properties:
-        id:
+        answer:
           type: string
+
+    AnswerResult:
+      type: object
+      required: [correct, correctAnswer]
+      properties:
+        correct:
+          type: boolean
+        correctAnswer:
+          type: string
+        xpAwarded:
+          type: integer
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, userId, userName, xp, weeklyXp]
+      properties:
         rank:
           type: integer
-        name:
-          type: string
-        type:
-          type: string
-        overallScore:
-          type: number
-        beautyScore:
-          type: number
-        hiringVerdict:
-          type: string
-        hiringTier:
-          type: string
-        description:
-          type: string
-        medal:
-          type: ["string", "null"]
-      required: [id, rank, name, type, overallScore, beautyScore, hiringVerdict, hiringTier, description]
-
-    EntryDetail:
-      type: object
-      properties:
-        id:
-          type: string
-        rank:
+        userId:
           type: integer
-        name:
+        userName:
           type: string
-        type:
-          type: string
-        overallScore:
-          type: number
-        beautyScore:
-          type: number
-        hiringVerdict:
-          type: string
-        hiringTier:
-          type: string
-        description:
-          type: string
-        medal:
-          type: ["string", "null"]
-        judgeScores:
-          type: array
-          items:
-            $ref: "#/components/schemas/JudgeScore"
-        strengths:
-          type: array
-          items:
-            type: string
-        shortcomings:
-          type: array
-          items:
-            $ref: "#/components/schemas/Shortcoming"
-      required: [id, rank, name, type, overallScore, beautyScore, hiringVerdict, hiringTier, description, judgeScores, strengths, shortcomings]
-
-    EvaluationSummary:
-      type: object
-      properties:
-        totalEntries:
+        xp:
           type: integer
-        evaluationDate:
-          type: string
-        judges:
+        weeklyXp:
+          type: integer
+        isCurrentUser:
+          type: boolean
+
+    Leaderboard:
+      type: object
+      required: [entries, currentUserRank]
+      properties:
+        entries:
           type: array
           items:
-            type: string
-        topScorer:
-          type: string
-        averageScore:
-          type: number
-        universalShortcomings:
-          type: array
-          items:
-            type: string
-      required: [totalEntries, evaluationDate, judges, topScorer, averageScore, universalShortcomings]
+            $ref: "#/components/schemas/LeaderboardEntry"
+        currentUserRank:
+          type: integer
+
+    Stats:
+      type: object
+      required: [xp, streak, longestStreak, lessonsCompleted, weeklyXp, level]
+      properties:
+        xp:
+          type: integer
+        streak:
+          type: integer
+        longestStreak:
+          type: integer
+        lessonsCompleted:
+          type: integer
+        weeklyXp:
+          type: integer
+        level:
+          type: integer
+        languagesStarted:
+          type: integer
+        dailyGoalXp:
+          type: integer
+        dailyXp:
+          type: integer

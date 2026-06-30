@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/wuolingo/"
+title = "Wuolingo — Best Merger"
+version = "1.0.0"
+id = "artifacts/wuolingo"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/wuolingo/" ]
+localPort = 20936
+
+[services.development]
+run = "pnpm --filter @workspace/wuolingo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/wuolingo", "run", "build" ]
+publicDir = "artifacts/wuolingo/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20936"
+BASE_PATH = "/wuolingo/"
